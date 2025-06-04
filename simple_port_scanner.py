@@ -1,39 +1,39 @@
-import socket  # şəbəkə bağlantıları üçün socket modulu
-from concurrent.futures import ThreadPoolExecutor  # paralel işləmə üçün ThreadPoolExecutor
+import socket  # for making network connections
+from concurrent.futures import ThreadPoolExecutor  # for faster scanning using threads
 
-# Verilən IP-də bir portu yoxlamaq üçün funksiya
+# Function to scan a single port on a given IP
 def scan_port(ip, port):
     try:
-        # TCP socket yaradılır
+        # Create a TCP socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(1)  # bağlantı cəhdinin vaxt limiti (1 saniyə)
-        result = sock.connect_ex((ip, port))  # bağlantı cəhdi edilir
-        sock.close()  # socket bağlanır
-        # Əgər connect_ex 0 qaytarırsa, port açıqdır
+        sock.settimeout(1)  # set timeout for connection attempt (1 second)
+        result = sock.connect_ex((ip, port))  # attempt to connect
+        sock.close()  # close the socket
+        # If connect_ex returns 0, the port is open
         return port if result == 0 else None
     except:
-        # Hər hansı xəta (məsələn, səhv IP) olduqda None qaytarılır
+        # In case of any error (e.g., invalid IP), return None
         return None
 
-# Verilən IP-də port aralığını yoxlamaq üçün funksiya
+# Function to scan a range of ports on a given IP
 def port_scanner(ip, start_port=1, end_port=1024):
-    open_ports = []  # açıq portları saxlayacaq siyahı
-    # Paralel işləmək üçün 100 thread-lik ThreadPoolExecutor
+    open_ports = []  # list to store open ports
+    # Use ThreadPoolExecutor to scan multiple ports in parallel (100 threads)
     with ThreadPoolExecutor(max_workers=100) as executor:
-        # Bütün portlar üçün scan_port işlərini submit edirik
+        # Submit all scan_port jobs to the executor
         futures = [executor.submit(scan_port, ip, port) for port in range(start_port, end_port + 1)]
-        # Nəticələr gəldikcə yoxlayırıq
+        # As futures complete, check if the port is open
         for future in futures:
             port = future.result()
             if port:
-                open_ports.append(port)  # açıq port siyahıya əlavə olunur
-    return open_ports  # açıq portlar qaytarılır
+                open_ports.append(port)  # add open port to the list
+    return open_ports  # return the list of open ports
 
 if __name__ == "__main__":
-    # İstifadəçidən IP ünvanı alınır
-    target_ip = input("Hədəf IP ünvanını daxil edin: ").strip()
-    print(f"{target_ip} ünvanında 1-dən 1024-ə qədər portlar yoxlanılır...")
-    # Port scanner-i işə salırıq və açıq portları alırıq
+    # Prompt user to enter target IP address
+    target_ip = input("Enter target IP address: ").strip()
+    print(f"Scanning {target_ip} for open ports from 1 to 1024...")
+    # Run the port scanner and get open ports
     open_ports = port_scanner(target_ip)
-    # Açıq portları çap edirik
-    print(f"Açıq portlar: {open_ports}")
+    # Print the list of open ports
+    print(f"Open ports: {open_ports}")
